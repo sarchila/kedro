@@ -25,73 +25,10 @@
 #
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pandas as pd
 import pytest
 
-from kedro.contrib.decorators import pandas_to_spark, retry, spark_to_pandas
+from kedro.contrib.decorators import retry
 from kedro.pipeline import node
-
-
-@pytest.fixture()
-def pandas_df():
-    return pd.DataFrame(
-        {
-            "Name": ["Alex", "Bob", "Clarke", "Dave"],
-            "Age": [31, 12, 65, 29],
-            "member": ["y", "n", "y", "n"],
-        }
-    )
-
-
-@pytest.fixture()
-def spark_df(pandas_df, spark_session):
-    return spark_session.createDataFrame(pandas_df)
-
-
-@pytest.fixture()
-def three_arg_node():
-    return node(
-        lambda arg1, arg2, arg3: [arg1, arg2, arg3],
-        ["input1", "input2", "input3"],
-        ["output1", "output2", "output3"],
-    )
-
-
-@pytest.fixture()
-def inputs(pandas_df, spark_df):
-    return {"input1": pandas_df, "input2": spark_df, "input3": pandas_df}
-
-
-def test_pandas_to_spark(three_arg_node, spark_session, pandas_df, inputs):
-    res = three_arg_node.decorate(pandas_to_spark(spark_session)).run(inputs)
-    for output in ["output1", "output2", "output3"]:
-        assert res[output].toPandas().equals(pandas_df)
-
-
-def test_pandas_to_spark_dict(pandas_df, spark_df, spark_session):
-    @pandas_to_spark(spark_session)
-    def func_with_kwargs(arg1, arg2=None, arg3=None):
-        return [arg1, arg2, arg3]
-
-    res = func_with_kwargs(pandas_df, arg2=spark_df, arg3=pandas_df)
-    for output in res:
-        assert output.toPandas().equals(pandas_df)
-
-
-def test_spark_to_pandas(three_arg_node, pandas_df, inputs):
-    res = three_arg_node.decorate(spark_to_pandas()).run(inputs)
-    for output in ["output1", "output2", "output3"]:
-        assert res[output].equals(pandas_df)
-
-
-def test_spark_to_pandas_dict(pandas_df, spark_df):
-    @spark_to_pandas()
-    def func_with_kwargs(arg1, arg2=None, arg3=None):
-        return [arg1, arg2, arg3]
-
-    res = func_with_kwargs(pandas_df, arg2=spark_df, arg3=pandas_df)
-    for output in res:
-        assert output.equals(pandas_df)
 
 
 def test_retry():

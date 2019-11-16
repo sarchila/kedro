@@ -32,12 +32,7 @@
 import copy
 from typing import Any, Dict
 
-import numpy as np
-import pandas as pd
-
 from kedro.io.core import AbstractDataSet, DataSetError
-
-_EMPTY = object()
 
 
 class MemoryDataSet(AbstractDataSet):
@@ -50,59 +45,54 @@ class MemoryDataSet(AbstractDataSet):
         >>> from kedro.io import MemoryDataSet
         >>> import pandas as pd
         >>>
-        >>> data = pd.DataFrame({'col1': [1, 2], 'col2': [4, 5],
-        >>>                      'col3': [5, 6]})
+        >>> data = {'col1': [1, 2], 'col2': [4, 5], 'col3': [5, 6]}
         >>> data_set = MemoryDataSet(data=data)
         >>>
         >>> loaded_data = data_set.load()
         >>> assert loaded_data.equals(data)
         >>>
-        >>> new_data = pd.DataFrame({'col1': [1, 2], 'col2': [4, 5]})
+        >>> new_data = {'col1': [1, 2], 'col2': [4, 5]}
         >>> data_set.save(new_data)
         >>> reloaded_data = data_set.load()
         >>> assert reloaded_data.equals(new_data)
 
     """
 
-    def __init__(self, data: Any = _EMPTY):
+    def _describe(self) -> Dict[str, Any]:
+        if self._data is not None:
+            return dict(data="<{}>".format(type(self._data).__name__))
+        return dict(data=None)  # pragma: no cover
+
+    def __init__(self, data: Any = None):
         """Creates a new instance of ``MemoryDataSet`` pointing to the
         provided Python object.
 
         Args:
             data: Python object containing the data.
         """
-        self._data = _EMPTY
-        if data is not _EMPTY:
+        self._data = None
+        if data is not None:
             self._save(data)
 
     def _load(self) -> Any:
-        if self._data is _EMPTY:
+        if self._data is None:
             raise DataSetError("Data for MemoryDataSet has not been saved yet.")
-        if isinstance(self._data, (pd.DataFrame, np.ndarray)):
-            data = self._data.copy()
-        elif type(self._data).__name__ == "DataFrame":
+        if type(self._data).__name__ == "DataFrame":
             data = self._data
         else:
             data = copy.deepcopy(self._data)
         return data
 
     def _save(self, data: Any):
-        if isinstance(data, (pd.DataFrame, np.ndarray)):
-            self._data = data.copy()
-        elif type(data).__name__ == "DataFrame":
+        if type(data).__name__ == "DataFrame":
             self._data = data
         else:
             self._data = copy.deepcopy(data)
 
     def _exists(self) -> bool:
-        return self._data is not _EMPTY
+        if self._data is None:
+            return False
+        return True
 
     def _release(self) -> None:
-        self._data = _EMPTY
-
-    def _describe(self) -> Dict[str, Any]:
-        if self._data is not _EMPTY:
-            return dict(data="<{}>".format(type(self._data).__name__))
-        # the string representation of datasets leaves out __init__
-        # arguments that are empty/None, equivalent here is _EMPTY
-        return dict(data=None)  # pragma: no cover
+        self._data = None

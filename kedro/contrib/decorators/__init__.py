@@ -31,4 +31,4 @@ This module contains function decorators, which can be used as ``Node``
 decorators. See ``kedro.pipeline.node.decorate``
 """
 
-from .decorators import pandas_to_spark, retry, spark_to_pandas  # NOQA
+from .decorators import retry  # NOQA
